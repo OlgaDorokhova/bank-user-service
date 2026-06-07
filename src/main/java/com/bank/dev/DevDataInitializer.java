@@ -51,6 +51,10 @@ public class DevDataInitializer {
 
             case "ADD":
                 log.info("ADD mode — generating additional users...");
+                if (userRepository.existsById(1L)) {
+                    log.info("User with id=1 already exists, skipping generation to avoid conflict");
+                    return;
+                }
                 users = dataGenerator.get().generateUsers(userCount);
                 break;
 

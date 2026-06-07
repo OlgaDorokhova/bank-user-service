@@ -43,4 +43,10 @@ public class CustomExceptions {
             super(message);
         }
     }
+
+    public static class UnsupportedReportTypeException extends RuntimeException {
+        public UnsupportedReportTypeException(String type) {
+            super("Unsupported report type: " + type + ". Supported: csv, pdf");
+        }
+    }
 }

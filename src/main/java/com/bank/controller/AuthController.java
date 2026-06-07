@@ -17,6 +17,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +32,11 @@ import javax.validation.Valid;
 @Tag(name = "Аутентификация", description = "Логин и получение JWT токена")
 public class AuthController {
 
+    @GetMapping("/test")
+    public String test() {
+        return "OK";
+    }
+
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
@@ -42,22 +48,29 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
-        log.info("Login attempt with login: {}", request.getLogin());
+        log.info("1. Login attempt: {}", request.getLogin());
+        log.info("2. Password: {}", request.getPassword());
 
         try {
+            log.info("3. Before authenticationManager.authenticate");
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getLogin(), request.getPassword())
             );
+            log.info("4. Authentication successful");
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            log.info("5. UserDetails username: {}", userDetails.getUsername());
+
             Long userId = Long.parseLong(userDetails.getUsername());
+            log.info("6. Parsed userId: {}", userId);
 
             String token = jwtUtil.generateToken(userId);
-            log.info("User {} logged in successfully", userId);
+            log.info("7. Token generated: {}", token.substring(0, 20) + "...");
 
             return ResponseEntity.ok(new JwtResponse(token, userId));
+
         } catch (Exception e) {
-            log.error("Login failed for {}: {}", request.getLogin(), e.getMessage());
+            log.error("Login error: ", e);  // ← полный стек трейс
             throw e;
         }
     }

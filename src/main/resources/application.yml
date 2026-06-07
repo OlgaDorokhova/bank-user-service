@@ -19,12 +19,6 @@ spring:
       mode: always  # выполняет schema.sql и data.sql при старте
       platform: postgres
 
-app:
-  data-generator:
-    enabled: true
-    mode: ADD           # ADD, REPLACE, SKIP_IF_EXISTS
-    user-count: 200
-
   redis:
    host: localhost
    port: 6379
@@ -41,6 +35,15 @@ app:
       time-to-live: 600000  # 10 минут в миллисекундах
       cache-null-values: false
 
+app:
+  data-generator:
+    enabled: false
+    mode: ADD           # ADD, REPLACE, SKIP_IF_EXISTS
+    user-count: 200
+
 jwt:
   secret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
   expiration: 86400000  # 24 часа в миллисекундах
+
+server:
+  port: 8080
