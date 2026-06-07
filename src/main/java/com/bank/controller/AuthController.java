@@ -4,6 +4,12 @@ import com.bank.config.JwtUtil;
 import com.bank.dto.request.LoginRequest;
 import com.bank.dto.response.JwtResponse;
 import com.bank.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +28,18 @@ import javax.validation.Valid;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Аутентификация", description = "Логин и получение JWT токена")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
+    @Operation(summary = "Авторизация пользователя", description = "Возвращает JWT токен для доступа к API")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешная авторизация",
+                    content = @Content(examples = @ExampleObject(value = "{\"token\":\"eyJhbGc...\",\"type\":\"Bearer\",\"userId\":1}"))),
+            @ApiResponse(responseCode = "401", description = "Неверный логин или пароль")
+    })
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("Login attempt with login: {}", request.getLogin());

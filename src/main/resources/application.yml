@@ -19,7 +19,12 @@ spring:
       mode: always  # выполняет schema.sql и data.sql при старте
       platform: postgres
 
-  # Redis (для кэша, добавим позже)
+app:
+  data-generator:
+    enabled: true
+    mode: ADD           # ADD, REPLACE, SKIP_IF_EXISTS
+    user-count: 200
+
   redis:
    host: localhost
    port: 6379

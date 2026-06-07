@@ -5,6 +5,11 @@ import com.bank.dto.request.UserSearchRequest;
 import com.bank.dto.response.UserResponse;
 import com.bank.dto.response.UserSearchResponse;
 import com.bank.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,10 +24,17 @@ import javax.validation.Valid;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Tag(name = "Пользователи", description = "Управление пользователями")
+@SecurityRequirement(name = "Bearer Authentication")
 public class UserController {
 
     private final UserService userService;
 
+    @Operation(summary = "Поиск пользователей", description = "Поддерживает фильтрацию по name, email, phone, dateOfBirth и пагинацию")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Успешный поиск"),
+            @ApiResponse(responseCode = "401", description = "Не авторизован")
+    })
     @GetMapping("/search")
     public ResponseEntity<UserSearchResponse> searchUsers(@Valid UserSearchRequest request) {
         log.info("Searching users with filters: name={}, email={}, phone={}, dateOfBirth={}",
@@ -49,6 +61,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Получить информацию о текущем пользователе")
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         Long userId = Long.parseLong(userDetails.getUsername());
@@ -56,6 +69,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(userId));
     }
 
+    @Operation(summary = "Обновить свои данные", description = "Можно добавлять, изменять и удалять email и phone")
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails,

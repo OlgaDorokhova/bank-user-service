@@ -52,6 +52,9 @@ public class User {
     private List<PhoneData> phones = new ArrayList<>();
 
     public void addEmail(EmailData email) {
+        if (emails == null) {
+            emails = new ArrayList<>();
+        }
         emails.add(email);
         email.setUser(this);
     }
@@ -62,6 +65,9 @@ public class User {
     }
 
     public void addPhone(PhoneData phone) {
+        if (phones == null) {
+            phones = new ArrayList<>();  // ← защита от null
+        }
         phones.add(phone);
         phone.setUser(this);
     }
