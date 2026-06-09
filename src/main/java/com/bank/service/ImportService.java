@@ -5,12 +5,13 @@ import com.bank.entity.Account;
 import com.bank.entity.EmailData;
 import com.bank.entity.PhoneData;
 import com.bank.entity.User;
-import com.bank.exception.ImportException;
+import com.bank.exception.CustomExceptions.ImportException;
 import com.bank.repository.AccountRepository;
 import com.bank.repository.EmailDataRepository;
 import com.bank.repository.PhoneDataRepository;
 import com.bank.repository.UserRepository;
 import com.bank.service.imports.ImportParser;
+import com.bank.validation.ImportValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,23 +34,21 @@ public class ImportService {
     private final PhoneDataRepository phoneDataRepository;
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ImportValidator importValidator;  // ← добавили
 
     private static final String DEFAULT_PASSWORD = "password123";
 
     @Transactional
     public int importUsers(MultipartFile file, String format) {
-        // 1. Выбираем парсер по формату
         ImportParser parser = importParsers.get(format.toLowerCase());
         if (parser == null) {
-            throw new ImportException("Unsupported import format: " + format + ". Supported: csv, xlsx");
+            throw new ImportException("Unsupported import format: " + format);
         }
 
-        // 2. Парсим файл
         try {
             List<ImportUserDto> importedUsers = parser.parse(file.getInputStream());
             log.info("Parsed {} users from file", importedUsers.size());
 
-            // 3. Сохраняем каждого пользователя
             int savedCount = 0;
             for (ImportUserDto dto : importedUsers) {
                 if (saveUser(dto)) {
@@ -61,42 +60,34 @@ public class ImportService {
             return savedCount;
 
         } catch (ImportException e) {
-            throw e;  // Пробрасываем дальше
+            throw e;
         } catch (Exception e) {
             log.error("Import failed", e);
-            throw new ImportException("Import failed: " + e.getMessage(), e);
+            throw new ImportException("Import failed: " + e.getMessage());
         }
     }
 
     private boolean saveUser(ImportUserDto dto) {
-        // Валидация обязательных полей
-        if (dto.getName() == null || dto.getName().isEmpty()) {
-            log.warn("User without name, skipping");
+        // 1. Валидация через ImportValidator
+        ImportValidator.ValidationResult validation = importValidator.validate(dto);
+
+        if (!validation.isValid()) {
+            log.warn("Validation failed: {}", validation.getErrorMessage());
             return false;
         }
 
-        if (dto.getEmail() == null || dto.getEmail().isEmpty()) {
-            log.warn("User {} without email, skipping", dto.getName());
-            return false;
-        }
-
-        if (dto.getPhone() == null || dto.getPhone().isEmpty()) {
-            log.warn("User {} without phone, skipping", dto.getName());
-            return false;
-        }
-
-        // Проверяем уникальность
+        // 2. Проверка уникальности
         if (emailDataRepository.existsByEmail(dto.getEmail())) {
-            log.warn("Email {} already exists, skipping user {}", dto.getEmail(), dto.getName());
+            log.warn("Email {} already exists, skipping", dto.getEmail());
             return false;
         }
 
         if (phoneDataRepository.existsByPhone(dto.getPhone())) {
-            log.warn("Phone {} already exists, skipping user {}", dto.getPhone(), dto.getName());
+            log.warn("Phone {} already exists, skipping", dto.getPhone());
             return false;
         }
 
-        // Создаём пользователя
+        // 3. Создаём пользователя
         User user = User.builder()
                 .name(dto.getName())
                 .dateOfBirth(dto.getDateOfBirth())
@@ -105,21 +96,21 @@ public class ImportService {
 
         userRepository.save(user);
 
-        // Добавляем email
+        // 4. Email
         EmailData email = EmailData.builder()
                 .email(dto.getEmail())
                 .user(user)
                 .build();
         user.addEmail(email);
 
-        // Добавляем телефон
+        // 5. Телефон
         PhoneData phone = PhoneData.builder()
                 .phone(dto.getPhone())
                 .user(user)
                 .build();
         user.addPhone(phone);
 
-        // Добавляем счёт
+        // 6. Счёт
         BigDecimal initialBalance = dto.getInitialBalance() != null ? dto.getInitialBalance() : BigDecimal.ZERO;
         Account account = Account.builder()
                 .balance(initialBalance)
