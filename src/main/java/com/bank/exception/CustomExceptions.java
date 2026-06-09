@@ -49,4 +49,10 @@ public class CustomExceptions {
             super("Unsupported report type: " + type + ". Supported: csv, pdf");
         }
     }
+
+    public static class ImportException extends RuntimeException {
+        public ImportException(String message) {
+            super(message);
+        }
+    }
 }
