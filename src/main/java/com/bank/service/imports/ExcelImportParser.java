@@ -1,7 +1,7 @@
 package com.bank.service.imports;
 
 import com.bank.dto.request.ImportUserDto;
-import com.bank.exception.ImportException;
+import com.bank.exception.CustomExceptions.ImportException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -57,7 +57,7 @@ public class ExcelImportParser implements ImportParser {
 
         } catch (Exception e) {
             log.error("Failed to parse Excel", e);
-            throw new ImportException("Failed to parse Excel: " + e.getMessage(), e);
+            throw new ImportException("Failed to parse Excel: " + e.getMessage());
         }
     }
 
