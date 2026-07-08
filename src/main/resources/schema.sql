@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+-- Добавить колонку role
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'USER';
+
 CREATE TABLE IF NOT EXISTS accounts (
                                         id BIGSERIAL PRIMARY KEY,
                                         user_id BIGINT UNIQUE NOT NULL,
