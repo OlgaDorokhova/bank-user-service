@@ -1,3 +1,5 @@
+-- @pg
+
 -- Пользователь 1: Иван Петров (пароль: password123)
 INSERT INTO users (id, name, date_of_birth, password)
 SELECT 1, 'Иван Петров', '1990-05-15', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E'
