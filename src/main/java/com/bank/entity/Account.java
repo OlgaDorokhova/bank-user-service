@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "accounts")
@@ -39,4 +41,22 @@ public class Account {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ===== Связи для переводов =====
+
+    @OneToMany(mappedBy = "fromAccount", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Transfer> outgoingTransfers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "toAccount", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Transfer> incomingTransfers = new ArrayList<>();
+
+    public void addOutgoingTransfer(Transfer transfer) {
+        outgoingTransfers.add(transfer);
+        transfer.setFromAccount(this);
+    }
+
+    public void addIncomingTransfer(Transfer transfer) {
+        incomingTransfers.add(transfer);
+        transfer.setToAccount(this);
+    }
 }

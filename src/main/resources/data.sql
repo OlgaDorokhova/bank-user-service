@@ -51,3 +51,20 @@ SELECT 3, 2000.00, 2000.00
 
 -- Сброс последовательности ID (только если таблица пустая)
 SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 3), true);
+
+-- Администратор (пароль: admin123)
+INSERT INTO users (id, name, date_of_birth, password, role)
+SELECT 100, 'Admin User', '1980-01-01', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E', 'ADMIN'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = 100);
+
+INSERT INTO email_data (user_id, email)
+SELECT 100, 'admin@mail.ru'
+WHERE NOT EXISTS (SELECT 1 FROM email_data WHERE user_id = 100 AND email = 'admin@mail.ru');
+
+INSERT INTO phone_data (user_id, phone)
+SELECT 100, '79001234567'
+WHERE NOT EXISTS (SELECT 1 FROM phone_data WHERE user_id = 100 AND phone = '79001234567');
+
+INSERT INTO accounts (user_id, balance, initial_balance)
+SELECT 100, 10000.00, 10000.00
+WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE user_id = 100);

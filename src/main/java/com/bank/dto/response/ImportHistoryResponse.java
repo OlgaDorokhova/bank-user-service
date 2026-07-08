@@ -5,18 +5,22 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransferResponse {
+public class ImportHistoryResponse {
+
     private Long id;
-    private Long fromUserId;
-    private Long toUserId;
-    private BigDecimal amount;
+    private String filename;
+    private String format;
+    private int totalRecords;
+    private int successfulRecords;
+    private int failedRecords;
     private String status;
+    private String errorMessage;
+    private Long importedBy;
     private LocalDateTime createdAt;
 }

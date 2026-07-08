@@ -71,6 +71,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 
+    @ExceptionHandler(CustomExceptions.ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(Exception ex) {
+        log.error("Validation error: {}", ex.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message) {
         return ResponseEntity.status(status)
                 .body(ErrorResponse.builder()

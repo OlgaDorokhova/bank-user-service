@@ -1,19 +1,28 @@
 package com.bank.service;
 
 import com.bank.dto.request.ImportUserDto;
+import com.bank.dto.response.ImportHistoryResponse;
 import com.bank.entity.Account;
 import com.bank.entity.EmailData;
+import com.bank.entity.ImportHistory;
 import com.bank.entity.PhoneData;
 import com.bank.entity.User;
 import com.bank.exception.CustomExceptions.ImportException;
+import com.bank.mapper.ImportHistoryMapper;
 import com.bank.repository.AccountRepository;
 import com.bank.repository.EmailDataRepository;
+import com.bank.repository.ImportHistoryRepository;
 import com.bank.repository.PhoneDataRepository;
 import com.bank.repository.UserRepository;
 import com.bank.service.imports.ImportParser;
 import com.bank.validation.ImportValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +42,10 @@ public class ImportService {
     private final EmailDataRepository emailDataRepository;
     private final PhoneDataRepository phoneDataRepository;
     private final AccountRepository accountRepository;
+    private final ImportHistoryRepository importHistoryRepository;
     private final PasswordEncoder passwordEncoder;
-    private final ImportValidator importValidator;  // ← добавили
+    private final ImportValidator importValidator;
+    private final ImportHistoryMapper importHistoryMapper; // ← добавили
 
     private static final String DEFAULT_PASSWORD = "password123";
 
@@ -45,27 +56,86 @@ public class ImportService {
             throw new ImportException("Unsupported import format: " + format);
         }
 
+        Long currentUserId = getCurrentUserId();
+
         try {
             List<ImportUserDto> importedUsers = parser.parse(file.getInputStream());
             log.info("Parsed {} users from file", importedUsers.size());
 
-            int savedCount = 0;
+            int successfulCount = 0;
+            int failedCount = 0;
+
             for (ImportUserDto dto : importedUsers) {
                 if (saveUser(dto)) {
-                    savedCount++;
+                    successfulCount++;
+                } else {
+                    failedCount++;
                 }
             }
 
-            log.info("Successfully imported {} users", savedCount);
-            return savedCount;
+            // Сохраняем историю импорта
+            saveImportHistory(file.getOriginalFilename(), format,
+                    importedUsers.size(), successfulCount, failedCount,
+                    ImportHistory.ImportStatus.SUCCESS, null, currentUserId);
 
-        } catch (ImportException e) {
-            throw e;
+            log.info("Successfully imported {} users ({} failed)", successfulCount, failedCount);
+            return successfulCount;
+
         } catch (Exception e) {
+            // Сохраняем историю с ошибкой
+            saveImportHistory(file.getOriginalFilename(), format,
+                    0, 0, 0,
+                    ImportHistory.ImportStatus.FAILED,
+                    e.getMessage(),
+                    currentUserId);
+
             log.error("Import failed", e);
             throw new ImportException("Import failed: " + e.getMessage());
         }
     }
+
+    private void saveImportHistory(String filename, String format,
+                                   int total, int success, int failed,
+                                   ImportHistory.ImportStatus status,
+                                   String errorMessage, Long userId) {
+        ImportHistory history = ImportHistory.builder()
+                .filename(filename)
+                .format(format)
+                .totalRecords(total)
+                .successfulRecords(success)
+                .failedRecords(failed)
+                .status(status)
+                .errorMessage(errorMessage)
+                .importedBy(userId)
+                .build();
+
+        importHistoryRepository.save(history);
+        log.info("Import history saved for file: {}", filename);
+    }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        String userId = authentication.getName();  // username = userId
+        return Long.parseLong(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ImportHistoryResponse> getImportHistory(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ImportHistory> historyPage = importHistoryRepository.findAllByOrderByCreatedAtDesc(pageable);
+        return historyPage.map(importHistoryMapper::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ImportHistoryResponse> getImportHistoryByUser(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ImportHistory> historyPage = importHistoryRepository.findByImportedBy(userId, pageable);
+        return historyPage.map(importHistoryMapper::toResponse);
+    }
+
 
     private boolean saveUser(ImportUserDto dto) {
         // 1. Валидация через ImportValidator

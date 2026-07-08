@@ -1,5 +1,6 @@
 package com.bank.entity;
 
+import com.bank.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -50,6 +51,10 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PhoneData> phones = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)  // Храним как строку в БД
+    @Column(name = "role", nullable = false)
+    private Role role = Role.USER;  // По умолчанию USER
 
     public void addEmail(EmailData email) {
         if (emails == null) {

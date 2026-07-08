@@ -1,5 +1,6 @@
 package com.bank.controller;
 
+import com.bank.dto.response.ImportHistoryResponse;
 import com.bank.exception.CustomExceptions.ImportException;
 import com.bank.service.ImportService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,10 +9,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -66,6 +70,37 @@ public class ImportController {
         ));
     }
 
+    // ===== Эндпоинты для ADMIN =====
+
+    @Operation(summary = "Получить историю импортов (только ADMIN)")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/history")
+    public ResponseEntity<Page<ImportHistoryResponse>> getImportHistory(
+            @Parameter(description = "Номер страницы (начиная с 0)")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Количество записей на странице")
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        log.info("ADMIN: Getting import history (page={}, size={})", page, size);
+        Page<ImportHistoryResponse> history = importService.getImportHistory(page, size);
+        return ResponseEntity.ok(history);
+    }
+
+    @Operation(summary = "Получить историю импортов конкретного пользователя (только ADMIN)")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/history/user/{userId}")
+    public ResponseEntity<Page<ImportHistoryResponse>> getImportHistoryByUser(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        log.info("ADMIN: Getting import history for user {} (page={}, size={})", userId, page, size);
+        Page<ImportHistoryResponse> history = importService.getImportHistoryByUser(userId, page, size);
+        return ResponseEntity.ok(history);
+    }
+// ===== Вспомогательные методы =====
+
     private void validateFile(MultipartFile file, String expectedExtension) {
         if (file.isEmpty()) {
             throw new ImportException("File is empty");
@@ -76,4 +111,5 @@ public class ImportController {
             throw new ImportException("Invalid file type. Expected ." + expectedExtension + ", got: " + originalFilename);
         }
     }
+
 }

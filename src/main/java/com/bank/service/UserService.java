@@ -5,6 +5,7 @@ import com.bank.dto.response.UserResponse;
 import com.bank.entity.EmailData;
 import com.bank.entity.PhoneData;
 import com.bank.entity.User;
+import com.bank.enums.Role;
 import com.bank.exception.CustomExceptions;
 import com.bank.mapper.UserMapper;
 import com.bank.repository.EmailDataRepository;
@@ -169,5 +170,41 @@ public class UserService {
                     log.warn("Unknown phone operation: {}", op.getOperation());
             }
         }
+    }
+
+    @Transactional
+    public UserResponse changeUserRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomExceptions.UserNotFoundException("User not found: " + userId));
+
+        try {
+            Role newRole = Role.valueOf(roleName.toUpperCase());
+            user.setRole(newRole);
+            User saved = userRepository.save(user);
+            log.info("Role changed for user {} to {}", userId, newRole);
+            return userMapper.toResponse(saved);
+        } catch (IllegalArgumentException e) {
+            throw new CustomExceptions.ValidationException("Invalid role: " + roleName + ". Allowed: ADMIN, USER");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(userMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void blockUser(Long userId) {
+        // TODO: добавить поле isBlocked в User
+        log.info("Blocking user {}", userId);
+        // userRepository.updateBlockedStatus(userId, true);
+    }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        userRepository.deleteById(userId);
+        log.info("Deleted user {}", userId);
     }
 }

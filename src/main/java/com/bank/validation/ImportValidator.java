@@ -22,7 +22,7 @@ public class ImportValidator {
             Pattern.compile("^[А-Яа-яA-Za-z\\s-]{2,100}$");
 
     private static final BigDecimal MIN_BALANCE = BigDecimal.ZERO;
-    private static final BigDecimal MAX_BALANCE = new BigDecimal("1_000_000_000");
+    private static final BigDecimal MAX_BALANCE = new BigDecimal("1000000000");
 
     public ValidationResult validate(ImportUserDto dto) {
         ValidationResult result = new ValidationResult();
